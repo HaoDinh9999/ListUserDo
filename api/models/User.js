@@ -11,12 +11,6 @@ const UserSchema = new mongoose.Schema(
       lowercase: true,
       validate: [validator.isEmail, "Please provide valid email"],
     },
-    // password: {
-    //   type: "String",
-    //   required: [true, "Provide password"],
-    //   minlength: 8,
-    //   //select: false,
-    // },
     birthdate: {
       type: Date,
       default: Date.now,

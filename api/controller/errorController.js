@@ -6,7 +6,10 @@ const handleCastErrorDB = (err) => {
 };
 
 const handleDuplicateFieldsDB = (err) => {
-  const message = `Duplicate field value . Please use another value!`;
+  //  const value = err.errmsg.match(/(["'])(\\?.)*?\1/)[0];
+  // console.log(value);
+
+  const message = `Duplicate field value: . Please use another value!`;
   return new AppError(message, 400);
 };
 const handleValidationErrorDB = (err) => {
@@ -16,15 +19,37 @@ const handleValidationErrorDB = (err) => {
   return new AppError(message, 400);
 };
 
-const handleFailEvery = () =>
-  new AppError("Something wrong, please try again later", 404);
+const sendErrorProd = (err, res) => {
+  // Operational, trusted error: send message to client
+  if (err.isOperational) {
+    res.status(err.statusCode).json({
+      status: err.status,
+      message: err.message,
+    });
+
+    // Programming or other unknown error: don't leak error details
+  } else {
+    // 1) Log error
+    console.error("ERROR 💥", err);
+
+    // 2) Send generic message
+    res.status(500).json({
+      status: "error",
+      message: err,
+    });
+  }
+};
 
 module.exports = (err, req, res, next) => {
+  // console.log(err.stack);
+
   err.statusCode = err.statusCode || 500;
   err.status = err.status || "error";
 
+  // if (process.env.NODE_ENV === "development") {
+  //  sendErrorDev(err, res);
+  // } else if (process.env.NODE_ENV === "production") {
   let error = { ...err };
-  console.log("33333333333333333");
   console.log(error);
   if (error.name === "CastError") error = handleCastErrorDB(error);
   if (error.code === 11000) error = handleDuplicateFieldsDB(error);
@@ -33,6 +58,8 @@ module.exports = (err, req, res, next) => {
     error._message === "User validation failed"
   )
     error = handleValidationErrorDB(error);
-  else error = handleFailEvery();
+
+  sendErrorProd(error, res);
+
   //}
 };
